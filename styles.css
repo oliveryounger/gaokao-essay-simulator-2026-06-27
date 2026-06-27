@@ -476,12 +476,14 @@ textarea {
 }
 
 .prompt-tools,
-.essay-tools {
+.essay-tools,
+.coach-panel {
   min-width: 0;
 }
 
 .prompt-tools label,
-.essay-title-row label {
+.essay-title-row label,
+.coach-panel label {
   display: block;
   margin-bottom: 8px;
   color: #303949;
@@ -592,6 +594,107 @@ textarea {
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
+}
+
+.essay-foot button {
+  min-width: 92px;
+  padding: 0 12px;
+}
+
+.coach-panel {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(232, 240, 255, .65), transparent 36%),
+    #fff;
+}
+
+.coach-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.coach-head h3 {
+  margin: 2px 0 0;
+  font-size: 20px;
+}
+
+.coach-head button {
+  min-width: 78px;
+  padding: 0 11px;
+}
+
+.coach-feed {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid #dbe3ee;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.coach-msg {
+  width: min(92%, 720px);
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: #243044;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.coach-msg strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #111827;
+  font-size: 12px;
+}
+
+.coach-msg.user {
+  justify-self: end;
+  border: 1px solid rgba(21, 90, 199, .22);
+  background: var(--blue-soft);
+}
+
+.coach-msg.ai {
+  justify-self: start;
+  border: 1px solid rgba(8, 126, 98, .2);
+  background: var(--green-soft);
+}
+
+.coach-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.coach-actions button {
+  min-height: 36px;
+  padding: 0 8px;
+  border-color: rgba(101, 84, 192, .22);
+  background: #f0edff;
+  color: #4b3aa0;
+  font-size: 12px;
+}
+
+#coachInput {
+  padding: 10px 11px;
+}
+
+.coach-send-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 9px;
 }
 
 .judge-panel {
@@ -872,6 +975,10 @@ textarea {
     width: 100%;
   }
 
+  .coach-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
   #essayInput {
     min-height: 430px;
   }
@@ -941,10 +1048,15 @@ textarea {
 
   .essay-foot {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .submit-btn {
+    grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .coach-send-row {
+    grid-template-columns: 1fr;
   }
 }

@@ -90,6 +90,20 @@ const QUICK_PROMPTS = [
   "故意写得有一点考场味，但不要空泛喊口号"
 ];
 
+const COACH_ACTIONS = {
+  diagnose: "先像严格语文老师一样诊断这篇作文：审题、结构、材料、语言分别哪里扣分。先不要改全文。",
+  outline: "重搭一个更稳的考场提纲：中心论点、分论点、材料安排、开头结尾。先不要改全文。",
+  revise: "在保留我原意的基础上整篇改稿，优先提升审题贴合、段落推进和高中生质感。",
+  opening: "只重写标题和开头两段，要更快扣题、更像考场高分开头，不要改后文。",
+  detail: "补一个真实可信的个人细节或生活场景，把空泛段落落地，但不要编真实姓名学校。",
+  humanize: "去掉明显 AI 味和模板腔，减少空泛口号，让语言更像认真高中生自己写的。",
+  ending: "只重写结尾，要回扣题目、收束观点，有余味但不要喊口号。",
+  polish: "做语言润色：删套话、压重复、保留结构，尽量少改原意。"
+};
+
+const API_BASE = String(window.GAOKAO_API_BASE || "").replace(/\/$/, "");
+const IS_STATIC_PAGES = location.hostname.endsWith("github.io") && !API_BASE;
+
 const SEEDED_BOARD = [
   { alias: "审题雷达", score: 57, question: "全国 II 卷", label: "稳到考官点头", time: "种子榜" },
   { alias: "语文课代表", score: 55, question: "上海卷", label: "想象力未被格式化", time: "种子榜" },
@@ -120,7 +134,14 @@ const els = {
   generateBtn: $("#generateBtn"),
   essayInput: $("#essayInput"),
   essayStatus: $("#essayStatus"),
+  undoDraftBtn: $("#undoDraftBtn"),
   gradeBtn: $("#gradeBtn"),
+  coachFeed: $("#coachFeed"),
+  coachActions: $("#coachActions"),
+  coachInput: $("#coachInput"),
+  coachAdviceBtn: $("#coachAdviceBtn"),
+  coachSendBtn: $("#coachSendBtn"),
+  clearCoachBtn: $("#clearCoachBtn"),
   copyShareBtn: $("#copyShareBtn"),
   resultTitle: $("#resultTitle"),
   totalScore: $("#totalScore"),
@@ -152,6 +173,8 @@ const state = {
   aiMode: "checking",
   isBusy: false,
   recognition: null,
+  draftHistory: [],
+  coachMessages: [],
   shareText: ""
 };
 
@@ -248,12 +271,30 @@ function setBusy(isBusy, label) {
   els.generateBtn.disabled = isBusy;
   els.gradeBtn.disabled = isBusy;
   els.randomQuestionBtn.disabled = isBusy;
+  els.coachAdviceBtn.disabled = isBusy;
+  els.coachSendBtn.disabled = isBusy;
+  $$("#coachActions button").forEach((button) => {
+    button.disabled = isBusy;
+  });
   if (label) els.essayStatus.textContent = label;
 }
 
+function apiUrl(path) {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}${normalized}` : normalized;
+}
+
 async function checkAiHealth() {
+  if (IS_STATIC_PAGES) {
+    state.aiMode = "mock";
+    els.aiStatus.textContent = "LLM 后端未连接";
+    els.aiStatus.classList.add("mock");
+    addCoachMessage("ai", "当前公开页还没有配置真实 LLM 后端，我会先用本地模拟模式陪你打磨。部署 Vercel/Worker 并设置 API key 后，这里会显示 AI 在线。");
+    return;
+  }
+
   try {
-    const res = await fetch("api/health", { method: "GET" });
+    const res = await fetch(apiUrl("api/health"), { method: "GET" });
     if (!res.ok) throw new Error("health failed");
     const data = await res.json();
     state.aiMode = data.aiEnabled ? "online" : "mock";
@@ -268,7 +309,7 @@ async function checkAiHealth() {
 }
 
 async function postJson(url, payload) {
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
@@ -284,10 +325,12 @@ async function generateEssay() {
   const question = selectedQuestion();
   const userPrompt = els.promptInput.value.trim();
   setBusy(true, "AI 正在组织论点和考场结构");
+  addCoachMessage("user", userPrompt || `请根据「${question.title}」生成一版稳妥初稿。`);
 
   if (state.aiMode !== "online") {
     const fallback = localEssay(question, userPrompt, state.mode);
-    els.essayInput.value = `${fallback.title}\n\n${fallback.essay}`;
+    replaceEssay(`${fallback.title}\n\n${fallback.essay}`, "已用本地模拟 AI 完成，可继续改稿");
+    addCoachMessage("ai", `初稿已生成。\n风险提醒：${fallback.warnings.join("；")}`);
     els.essayStatus.textContent = "已用本地模拟 AI 完成，可继续改稿";
     setBusy(false);
     updateMetrics();
@@ -302,13 +345,19 @@ async function generateEssay() {
       alias: alias()
     });
     const normalized = normalizeWriteResult(data, question, userPrompt);
-    els.essayInput.value = `${normalized.title}\n\n${normalized.essay}`;
+    replaceEssay(`${normalized.title}\n\n${normalized.essay}`, "AI 初稿完成，可继续追问或改稿");
+    addCoachMessage("ai", [
+      "初稿已生成。",
+      normalized.outline?.length ? `提纲：\n${normalized.outline.map((item, index) => `${index + 1}. ${item}`).join("\n")}` : "",
+      normalized.warnings?.length ? `风险提醒：${normalized.warnings.join("；")}` : ""
+    ].filter(Boolean).join("\n\n"));
     els.essayStatus.textContent = normalized.warnings?.length
       ? `AI 完成：${normalized.warnings[0]}`
       : "AI 完成，可继续改稿";
   } catch {
     const fallback = localEssay(question, userPrompt, state.mode);
-    els.essayInput.value = `${fallback.title}\n\n${fallback.essay}`;
+    replaceEssay(`${fallback.title}\n\n${fallback.essay}`, "已用本地模拟 AI 完成，可继续改稿");
+    addCoachMessage("ai", `线上 AI 暂不可用，已切到本地模拟初稿。\n风险提醒：${fallback.warnings.join("；")}`);
     els.essayStatus.textContent = "已用本地模拟 AI 完成，可继续改稿";
   } finally {
     setBusy(false);
@@ -327,6 +376,73 @@ function normalizeWriteResult(data, question, userPrompt) {
     outline: Array.isArray(data.outline) ? data.outline.slice(0, 5) : [],
     warnings: Array.isArray(data.warnings) ? data.warnings.slice(0, 3) : []
   };
+}
+
+function currentEssay() {
+  return els.essayInput.value.trim();
+}
+
+function pushDraftSnapshot() {
+  const essay = currentEssay();
+  if (!essay) return;
+  const last = state.draftHistory[state.draftHistory.length - 1];
+  if (last !== essay) {
+    state.draftHistory.push(essay);
+    state.draftHistory = state.draftHistory.slice(-12);
+  }
+  els.undoDraftBtn.disabled = state.draftHistory.length === 0;
+}
+
+function replaceEssay(nextEssay, status) {
+  const before = currentEssay();
+  if (before && before !== nextEssay.trim()) pushDraftSnapshot();
+  els.essayInput.value = nextEssay.trim();
+  state.lastResult = null;
+  toggleShareButtons(false);
+  els.undoDraftBtn.disabled = state.draftHistory.length === 0;
+  if (status) els.essayStatus.textContent = status;
+  updateMetrics();
+  drawPoster();
+}
+
+function undoDraft() {
+  const previous = state.draftHistory.pop();
+  if (!previous) return;
+  els.essayInput.value = previous;
+  els.undoDraftBtn.disabled = state.draftHistory.length === 0;
+  state.lastResult = null;
+  toggleShareButtons(false);
+  els.essayStatus.textContent = "已撤回到上一版";
+  updateMetrics();
+}
+
+function addCoachMessage(role, text) {
+  const clean = String(text || "").trim();
+  if (!clean) return;
+  state.coachMessages.push({ role, text: clean });
+  state.coachMessages = state.coachMessages.slice(-20);
+  renderCoachFeed();
+}
+
+function renderCoachFeed() {
+  if (!els.coachFeed) return;
+  const messages = state.coachMessages.length
+    ? state.coachMessages
+    : [{ role: "ai", text: "先写创作目标，生成初稿；之后可以让我诊断、重搭提纲、改开头、补细节、去 AI 味，直到你喜欢为止。" }];
+  els.coachFeed.innerHTML = messages.map((message) => `
+    <div class="coach-msg ${message.role === "user" ? "user" : "ai"}">
+      <strong>${message.role === "user" ? "你" : "AI 教练"}</strong>${escapeHtml(message.text)}
+    </div>
+  `).join("");
+  els.coachFeed.scrollTop = els.coachFeed.scrollHeight;
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function localEssay(question, userPrompt, mode) {
@@ -398,6 +514,186 @@ function detailFor(question, seed) {
     ]
   };
   const pool = details[question.id] || details["national-i"];
+  return pool[seed % pool.length];
+}
+
+async function runCoach(action, customInstruction = "", shouldRewrite = true) {
+  const question = selectedQuestion();
+  const essay = currentEssay();
+  const actionInstruction = COACH_ACTIONS[action] || "";
+  const instruction = [actionInstruction, customInstruction].filter(Boolean).join("\n");
+  if (!instruction.trim()) {
+    els.essayStatus.textContent = "先写一个改稿要求";
+    return;
+  }
+
+  addCoachMessage("user", instruction);
+  setBusy(true, shouldRewrite ? "AI 教练正在改稿" : "AI 教练正在诊断");
+
+  if (state.aiMode !== "online") {
+    const result = localCoach(question, essay, instruction, action, shouldRewrite);
+    applyCoachResult(result, shouldRewrite);
+    setBusy(false);
+    return;
+  }
+
+  try {
+    const data = await postJson("api/coach", {
+      question: buildQuestionPayload(),
+      essay,
+      userPrompt: els.promptInput.value.trim(),
+      instruction,
+      action,
+      mode: state.mode,
+      shouldRewrite,
+      history: state.coachMessages.slice(-10),
+      alias: alias()
+    });
+    applyCoachResult(normalizeCoachResult(data, question, essay, instruction, action, shouldRewrite), shouldRewrite);
+  } catch (error) {
+    const result = localCoach(question, essay, instruction, action, shouldRewrite);
+    result.reply = `线上 AI 暂不可用，先用本地模拟教练处理。\n\n${result.reply}`;
+    applyCoachResult(result, shouldRewrite);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function normalizeCoachResult(data, question, essay, instruction, action, shouldRewrite) {
+  if (!data || typeof data !== "object") return localCoach(question, essay, instruction, action, shouldRewrite);
+  const reply = String(data.reply || data.comment || "").trim();
+  const nextEssay = String(data.essay || "").trim();
+  const patchSummary = Array.isArray(data.patchSummary) ? data.patchSummary.slice(0, 4).map(String) : [];
+  const warnings = Array.isArray(data.warnings) ? data.warnings.slice(0, 3).map(String) : [];
+  return {
+    reply: reply || "我已经根据你的要求处理了这一版。",
+    essay: nextEssay.length > 80 ? nextEssay : "",
+    patchSummary,
+    warnings
+  };
+}
+
+function applyCoachResult(result, shouldRewrite) {
+  const parts = [
+    result.reply,
+    result.patchSummary?.length ? `改动：\n${result.patchSummary.map((item) => `- ${item}`).join("\n")}` : "",
+    result.warnings?.length ? `提醒：${result.warnings.join("；")}` : ""
+  ].filter(Boolean);
+  addCoachMessage("ai", parts.join("\n\n"));
+
+  if (shouldRewrite && result.essay) {
+    replaceEssay(result.essay, "AI 教练已生成新版本，可继续追问");
+  } else {
+    els.essayStatus.textContent = "AI 教练已给出建议";
+  }
+}
+
+function localCoach(question, essay, instruction, action, shouldRewrite) {
+  if (!essay) {
+    const draft = localEssay(question, `${els.promptInput.value}\n${instruction}`, state.mode);
+    return {
+      reply: "你还没有正文，我先按当前题目和创作目标给一版可改的初稿。",
+      essay: `${draft.title}\n\n${draft.essay}`,
+      patchSummary: ["从题意出发生成完整初稿", "保留后续可继续改稿空间"],
+      warnings: draft.warnings
+    };
+  }
+
+  if (!shouldRewrite || action === "diagnose" || action === "outline") {
+    return {
+      reply: localAdvice(question, essay, action),
+      essay: "",
+      patchSummary: [],
+      warnings: []
+    };
+  }
+
+  return makeLocalRevision(question, essay, action, instruction);
+}
+
+function localAdvice(question, essay, action) {
+  const len = chineseLength(essay);
+  const fit = Math.round(promptFit(essay, question) * 100);
+  if (action === "outline") {
+    return [
+      `更稳的提纲可以这样搭：`,
+      `1. 开头：用一句判断直接扣住「${question.title}」，不要绕太远。`,
+      `2. 主体一：解释题目关键词「${question.hooks[0]}」，给出个人经验。`,
+      `3. 主体二：把个人经验推到社会或时代层面，避免只写自己。`,
+      `4. 主体三：补一个反面或边界思考，让文章有分寸。`,
+      `5. 结尾：回到青年行动，不喊口号，落在具体选择。`
+    ].join("\n");
+  }
+  return [
+    `诊断：当前约 ${len} 字，审题贴合估计 ${fit || "--"}。`,
+    len < question.wordMin ? `字数还没到 ${question.wordMin}，真实考场会明显扣分。` : "字数基本够用，接下来重点不是加长，而是提高有效信息密度。",
+    fit < 55 ? `题目关键词出现和展开还不够，建议至少围绕「${question.hooks.slice(0, 2).join(" / ")}」各写一层。` : "关键词回应比较明显，可以继续加强材料和段落推进。",
+    "最值得改的地方：减少通用句，补一处你自己的场景；每段第一句写成明确判断；结尾回扣题目而不是泛泛升华。"
+  ].join("\n");
+}
+
+function makeLocalRevision(question, essay, action, instruction) {
+  const lines = essay.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const title = lines[0]?.length <= 24 ? lines[0] : question.title;
+  const body = lines[0]?.length <= 24 ? lines.slice(1).join("\n\n") : essay;
+  const paras = body.split(/\n{2,}/).map((para) => para.trim()).filter(Boolean);
+  const seed = hashText(`${essay}:${instruction}:${action}`);
+  const detail = detailFor(question, seed);
+  let nextParas = paras.length ? [...paras] : localEssay(question, instruction, state.mode).essay.split(/\n{2,}/);
+  let nextTitle = title;
+  const summary = [];
+
+  if (action === "opening") {
+    nextTitle = title.includes(question.title) ? title : polishedTitle(question, seed);
+    nextParas[0] = `站在这道题前，我不想先给出漂亮答案，而想先确认一个朴素判断：${question.summary}。真正能打动人的作文，不是把“${question.hooks[0]}”写成标签，而是说明它如何进入一个人的经验，又如何把个人带向更辽阔的时代现场。`;
+    summary.push("重写标题和开头，让第一段更快扣题");
+  } else if (action === "detail") {
+    const insertAt = Math.min(2, nextParas.length);
+    nextParas.splice(insertAt, 0, `我想起一个具体时刻。${detail}这个细节并不宏大，却让我看到：题目里的关键词不是抽象概念，它会在一次选择、一次返工、一次重新理解中显出重量。`);
+    summary.push("补入个人场景，降低空泛感");
+  } else if (action === "humanize") {
+    nextParas = nextParas.map((para) => para
+      .replace(/当今时代，?/g, "")
+      .replace(/毋庸置疑，?/g, "")
+      .replace(/综上所述，?/g, "")
+      .replace(/砥砺前行/g, "继续往前走")
+      .replace(/时代洪流/g, "变化很快的现实"));
+    summary.push("删除部分模板腔和口号词");
+  } else if (action === "ending") {
+    nextParas[nextParas.length - 1] = `所以，面对「${question.title}」，我更愿意把答案写成一种行动：在变化中保持判断，在困难处守住根本，在工具与潮流面前不放弃自己的思考。这样的作文也许不喧哗，却能说明一个青年如何把题目写进真实生活。`;
+    summary.push("重写结尾，回扣题目和青年行动");
+  } else if (action === "polish") {
+    nextParas = nextParas.map((para) => para
+      .replace(/我们当然可以/g, "我们可以")
+      .replace(/真正有力量的/g, "更有力量的")
+      .replace(/不只来自/g, "不只在于")
+      .replace(/更成熟的自我说明/g, "更清醒的自我说明"));
+    summary.push("做轻量语言润色，减少重复表达");
+  } else {
+    const draft = localEssay(question, `${els.promptInput.value}\n${instruction}`, state.mode);
+    nextTitle = draft.title;
+    nextParas = draft.essay.split(/\n{2,}/);
+    summary.push("按当前要求整篇重写");
+  }
+
+  return {
+    reply: "我按你的要求处理了一版。建议你重点看开头是否更扣题、材料是否更像自己的经验，再继续追问局部段落。",
+    essay: `${nextTitle}\n\n${nextParas.join("\n\n")}`,
+    patchSummary: summary,
+    warnings: ["本地模拟改稿，真实 LLM 后端连接后会更细致"]
+  };
+}
+
+function polishedTitle(question, seed) {
+  const titles = {
+    "national-i": ["词语变了，我也在长大", "在一个词里看见新的自己"],
+    "national-ii": ["守住源头，终见通途", "不失其本，方能复明"],
+    "beijing-plan": ["做规划与下功夫", "规划在前，功夫在身"],
+    "beijing-huaju": ["含英咀华", "慢慢读懂的芬芳"],
+    "tianjin-tiao": ["调出生命的亮色", "顺势而调，主动而创"],
+    "shanghai-tech": ["想象，不应只交给科技", "科技重塑想象之后"]
+  };
+  const pool = titles[question.id] || [question.title];
   return pool[seed % pool.length];
 }
 
@@ -889,6 +1185,7 @@ function bindEvents() {
   });
   els.generateBtn.addEventListener("click", generateEssay);
   els.gradeBtn.addEventListener("click", gradeEssay);
+  els.undoDraftBtn.addEventListener("click", undoDraft);
   els.essayInput.addEventListener("input", () => {
     state.lastResult = null;
     toggleShareButtons(false);
@@ -913,6 +1210,28 @@ function bindEvents() {
   els.downloadBtn.addEventListener("click", downloadPoster);
   els.dialogDownloadBtn.addEventListener("click", downloadPoster);
   els.systemShareBtn.addEventListener("click", systemShare);
+  els.coachActions.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const action = button.dataset.action;
+    const shouldRewrite = !["diagnose", "outline"].includes(action);
+    runCoach(action, "", shouldRewrite);
+  });
+  els.coachSendBtn.addEventListener("click", () => {
+    const instruction = els.coachInput.value.trim();
+    runCoach("custom", instruction, true);
+    els.coachInput.value = "";
+  });
+  els.coachAdviceBtn.addEventListener("click", () => {
+    const instruction = els.coachInput.value.trim() || "请只给我下一步修改建议，不要直接改全文。";
+    runCoach("diagnose", instruction, false);
+    els.coachInput.value = "";
+  });
+  els.clearCoachBtn.addEventListener("click", () => {
+    state.coachMessages = [];
+    renderCoachFeed();
+    els.essayStatus.textContent = "AI 教练对话已清空";
+  });
   els.resetBoardBtn.addEventListener("click", () => {
     localStorage.removeItem(boardKey());
     renderLeaderboard();
@@ -928,6 +1247,7 @@ function init() {
   renderChips();
   selectQuestion(state.selectedId);
   renderLeaderboard();
+  renderCoachFeed();
   setupVoice();
   bindEvents();
   updateMetrics();

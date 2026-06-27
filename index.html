@@ -4,11 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>高考语文模拟器</title>
-  <meta name="description" content="选择 2026 高考语文作文题，用 AI 写一篇作文，再接受严格考官评分，生成同题挑战战报。">
+  <meta name="description" content="选择 2026 高考语文作文题，和 AI 反复打磨作文，再接受严格考官评分，生成同题挑战战报。">
   <meta name="theme-color" content="#f4f6f8">
   <meta property="og:title" content="高考语文模拟器">
-  <meta property="og:description" content="同题作文挑战：AI 帮你写，考官严格扣分，看看你能不能上榜。">
+  <meta property="og:description" content="同题作文挑战：和 AI 打磨作文，考官严格扣分，看看你能不能上榜。">
   <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
 </head>
 <body>
   <main class="app-shell">
@@ -16,7 +17,7 @@
       <div class="brand">
         <p class="kicker">2026 essay challenge</p>
         <h1>高考语文模拟器</h1>
-        <p>选今年高考作文题，写 prompt，请 AI 帮你成文，然后让严苛阅卷老师打分。</p>
+        <p>选今年高考作文题，写创作目标，和 AI 反复打磨成文，然后让严苛阅卷老师打分。</p>
       </div>
       <div class="status-pill" id="aiStatus">AI 服务检测中</div>
     </header>
@@ -69,7 +70,7 @@
     <section class="section-head writer-head">
       <div>
         <p class="kicker">step 2</p>
-        <h2>写 prompt，让 AI 代笔</h2>
+        <h2>和 AI 打磨作文</h2>
       </div>
       <label class="alias-field" for="aliasInput">
         <span>考生代号</span>
@@ -79,15 +80,15 @@
 
     <section class="writer-panel">
       <div class="prompt-tools">
-        <label for="promptInput">你的 prompt</label>
-        <textarea id="promptInput" rows="5" placeholder="例如：写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI，结尾有力量。"></textarea>
+        <label for="promptInput">创作目标</label>
+        <textarea id="promptInput" rows="5" placeholder="例如：我想写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI。先帮我搭结构，再写初稿，结尾要有力量。"></textarea>
         <div id="promptChips" class="chip-row" aria-label="快捷 prompt"></div>
         <div class="writer-actions">
           <button id="voiceBtn" type="button">语音输入</button>
           <button id="cleanPromptBtn" type="button">清空</button>
-          <button id="generateBtn" class="primary-btn" type="button">AI 帮我写</button>
+          <button id="generateBtn" class="primary-btn" type="button">生成初稿</button>
         </div>
-        <p id="voiceHint" class="tool-hint">移动端 Chrome 支持语音识别；不支持时可直接打字。</p>
+        <p id="voiceHint" class="tool-hint">移动端 Chrome 支持语音识别；不支持时可直接打字。生成后继续用下面的 AI 教练反复改。</p>
       </div>
 
       <div class="essay-tools">
@@ -102,7 +103,35 @@
         <textarea id="essayInput" rows="15" placeholder="AI 生成后会出现在这里，也可以自己修改。"></textarea>
         <div class="essay-foot">
           <span id="essayStatus">等待写作</span>
+          <button id="undoDraftBtn" type="button" disabled>撤回上版</button>
           <button id="gradeBtn" class="submit-btn" type="button">交卷阅卷</button>
+        </div>
+      </div>
+
+      <div class="coach-panel">
+        <div class="coach-head">
+          <div>
+            <p class="kicker">AI writing desk</p>
+            <h3>AI 教练</h3>
+          </div>
+          <button id="clearCoachBtn" type="button">清对话</button>
+        </div>
+        <div id="coachFeed" class="coach-feed" aria-live="polite"></div>
+        <div id="coachActions" class="coach-actions" aria-label="快捷改稿">
+          <button type="button" data-action="diagnose">先诊断</button>
+          <button type="button" data-action="outline">重搭提纲</button>
+          <button type="button" data-action="revise">整篇改稿</button>
+          <button type="button" data-action="opening">换开头</button>
+          <button type="button" data-action="detail">补细节</button>
+          <button type="button" data-action="humanize">去 AI 味</button>
+          <button type="button" data-action="ending">升结尾</button>
+          <button type="button" data-action="polish">润色语言</button>
+        </div>
+        <label for="coachInput">继续要求 AI</label>
+        <textarea id="coachInput" rows="3" placeholder="例如：第二段太空了，帮我换成一个真实一点的校园经历；不要改全文，只改这一段。"></textarea>
+        <div class="coach-send-row">
+          <button id="coachAdviceBtn" type="button">只给建议</button>
+          <button id="coachSendBtn" class="primary-btn" type="button">按要求改稿</button>
         </div>
       </div>
     </section>

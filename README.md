@@ -8,7 +8,7 @@ source: User request; public 2026 Gaokao Chinese essay prompt reporting; OpenAI 
 
 # 高考语文模拟器
 
-移动端网页小游戏：玩家选择 2026 高考语文作文题，输入 prompt 或语音输入，请 AI 写作文，再由严格考官按统一 60 分制评分，生成本机排行榜和可分享战报图。
+移动端网页小游戏：玩家选择 2026 高考语文作文题，输入创作目标或语音输入，和 AI 教练多轮打磨作文，再由严格考官按统一 60 分制评分，生成本机排行榜和可分享战报图。
 
 ## Run
 
@@ -38,11 +38,36 @@ Optional environment variables:
 
 Do not commit API keys. This project lives in an internal-public workspace, so `server.js` only reads keys from environment variables.
 
+GitHub Pages mode:
+
+```text
+https://oliveryounger.github.io/gaokao-essay-simulator-2026-06-27/
+```
+
+GitHub Pages is static hosting. To use a real LLM from that URL, deploy the included `api/*.js` serverless functions to Vercel or another backend, set `OPENAI_API_KEY` there, then put that backend origin in `config.js`:
+
+```js
+window.GAOKAO_API_BASE = "https://your-vercel-project.vercel.app";
+```
+
+Vercel mode:
+
+```bash
+vercel
+vercel env add OPENAI_API_KEY production
+vercel --prod
+```
+
+If the whole repo is served from Vercel, the frontend can call same-origin `/api/*` and `config.js` can stay empty.
+
 ## Gameplay
 
 - Choose one of six 2026 main作文题: 全国 I、全国 II、北京议论文、北京记叙文、天津、上海.
 - Use prompt chips or browser speech recognition to describe the desired style.
+- Generate an initial draft, then repeatedly ask the AI coach to diagnose, rebuild outline, revise, rewrite opening, add detail, remove AI tone, improve ending, or polish language.
+- Draft history supports undoing the last AI rewrite.
 - AI writing endpoint returns title, essay, outline, and risk warnings.
+- AI coach endpoint returns a player-facing reply, optional rewritten essay, patch summary, and remaining warnings.
 - Grading endpoint returns:
   - content / expression / development, each 20 points
   - total score out of 60
@@ -81,3 +106,5 @@ Do not commit API keys. This project lives in an internal-public workspace, so `
 - `styles.css`: responsive visual design, answer sheet, score stamp, modal poster.
 - `app.js`: game state, speech input, local AI fallback, scoring, leaderboard, sharing.
 - `server.js`: no-dependency Node static server and LLM proxy.
+- `api/*.js`: Vercel serverless LLM endpoints.
+- `config.js`: optional external API base for GitHub Pages.
