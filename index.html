@@ -80,45 +80,84 @@
 
     <section class="writer-panel">
       <aside class="conversation-panel">
-        <div class="conversation-head">
-          <div>
-            <p class="kicker">chat</p>
-            <h3>对话</h3>
+        <section class="studio-card topic-brief">
+          <div class="panel-title-row">
+            <div>
+              <p class="kicker">current prompt</p>
+              <h3 id="studioQuestionTitle">作文题</h3>
+            </div>
+            <span id="studioQuestionMeta" class="mini-pill">待载入</span>
           </div>
-          <button id="clearCoachBtn" type="button">清空</button>
-        </div>
-        <div id="coachFeed" class="coach-feed" aria-live="polite"></div>
-        <div id="promptChips" class="chip-row" aria-label="快捷 prompt"></div>
-        <div id="coachActions" class="coach-actions" aria-label="快捷改稿">
-          <button type="button" data-action="diagnose">诊断</button>
-          <button type="button" data-action="outline">提纲</button>
-          <button type="button" data-action="revise">整篇改</button>
-          <button type="button" data-action="opening">换开头</button>
-          <button type="button" data-action="detail">补细节</button>
-          <button type="button" data-action="humanize">去 AI 味</button>
-          <button type="button" data-action="ending">升结尾</button>
-          <button type="button" data-action="polish">润色</button>
-        </div>
-        <label for="promptInput">给 AI 的下一句话</label>
-        <textarea id="promptInput" rows="4" placeholder="例如：我想写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI。先帮我搭结构，再写初稿，结尾要有力量。"></textarea>
-        <div class="composer-actions">
-          <button id="voiceBtn" type="button">语音</button>
-          <button id="cleanPromptBtn" type="button">清空</button>
-          <button id="coachAdviceBtn" type="button">只要建议</button>
-          <button id="coachSendBtn" type="button">应用到 Canvas</button>
-          <button id="generateBtn" class="primary-btn" type="button">生成初稿</button>
-        </div>
-        <p id="voiceHint" class="tool-hint">左侧可以像聊天一样反复追加要求；需要落到正文时点“应用到 Canvas”。移动端 Chrome 支持语音输入。</p>
+          <p id="studioQuestionSummary" class="topic-summary">选择作文题后载入题意。</p>
+          <div id="studioHooks" class="anchor-tags" aria-label="题目关键词"></div>
+        </section>
+
+        <section class="studio-card prompt-card">
+          <div class="panel-title-row">
+            <div>
+              <p class="kicker">intent</p>
+              <h3>本轮要求</h3>
+            </div>
+            <button id="cleanPromptBtn" type="button">清空</button>
+          </div>
+          <textarea id="promptInput" rows="4" placeholder="例如：先搭结构，写稳健议论文；第二段要有一个校园细节；结尾别喊口号。"></textarea>
+          <div class="composer-actions">
+            <button id="generateBtn" class="primary-btn" type="button">生成初稿</button>
+            <button id="coachSendBtn" type="button">改入正文</button>
+            <button id="coachAdviceBtn" type="button">只分析</button>
+            <button id="voiceBtn" type="button">语音</button>
+          </div>
+        </section>
+
+        <section class="studio-card quick-panel">
+          <div class="panel-title-row compact-row">
+            <div>
+              <p class="kicker">shortcuts</p>
+              <h3>快捷动作</h3>
+            </div>
+          </div>
+          <div id="coachActions" class="coach-actions" aria-label="快捷改稿">
+            <button type="button" data-action="diagnose"><span>审题诊断</span><small>只看扣分点</small></button>
+            <button type="button" data-action="outline"><span>重搭提纲</span><small>先不改正文</small></button>
+            <button type="button" data-action="revise"><span>整篇改稿</span><small>保留原意</small></button>
+            <button type="button" data-action="opening"><span>换开头</span><small>标题和前两段</small></button>
+            <button type="button" data-action="detail"><span>补细节</span><small>把段落落地</small></button>
+            <button type="button" data-action="humanize"><span>去 AI 味</span><small>减少模板腔</small></button>
+            <button type="button" data-action="ending"><span>升结尾</span><small>回扣题目</small></button>
+            <button type="button" data-action="polish"><span>润色语言</span><small>少改原意</small></button>
+          </div>
+          <div id="promptChips" class="chip-row" aria-label="快捷 prompt"></div>
+        </section>
+
+        <section class="studio-card conversation-log">
+          <div class="panel-title-row compact-row">
+            <div>
+              <p class="kicker">thread</p>
+              <h3>对话记录</h3>
+            </div>
+            <button id="clearCoachBtn" type="button">清空</button>
+          </div>
+          <div id="coachFeed" class="coach-feed" aria-live="polite"></div>
+        </section>
       </aside>
 
-      <div class="essay-tools canvas-panel">
-        <div class="essay-title-row">
-          <label for="essayInput">作文 Canvas</label>
+      <section class="essay-tools canvas-panel">
+        <div class="canvas-top">
+          <div>
+            <p class="kicker">answer sheet</p>
+            <h3 id="canvasQuestionTitle">作文 Canvas</h3>
+            <p id="canvasQuestionMeta">待选择题目</p>
+          </div>
           <div class="mode-tabs" role="tablist" aria-label="写作模式">
             <button class="mode-tab active" data-mode="stable" type="button">稳</button>
             <button class="mode-tab" data-mode="sharp" type="button">锐</button>
             <button class="mode-tab" data-mode="literary" type="button">文</button>
           </div>
+        </div>
+        <div class="canvas-metrics" aria-live="polite">
+          <span>字数 <b id="canvasWordValue">0 / 800</b></span>
+          <span>贴题 <b id="canvasFitValue">--</b></span>
+          <span>风险 <b id="canvasRiskValue">--</b></span>
         </div>
         <textarea id="essayInput" rows="15" placeholder="AI 生成后会出现在这里，也可以自己修改。"></textarea>
         <div class="essay-foot">
@@ -126,7 +165,7 @@
           <button id="undoDraftBtn" type="button" disabled>撤回上版</button>
           <button id="gradeBtn" class="submit-btn" type="button">交卷阅卷</button>
         </div>
-      </div>
+      </section>
     </section>
 
     <section class="section-head">

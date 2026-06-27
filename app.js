@@ -129,6 +129,15 @@ const els = {
   aliasInput: $("#aliasInput"),
   promptInput: $("#promptInput"),
   promptChips: $("#promptChips"),
+  studioQuestionTitle: $("#studioQuestionTitle"),
+  studioQuestionMeta: $("#studioQuestionMeta"),
+  studioQuestionSummary: $("#studioQuestionSummary"),
+  studioHooks: $("#studioHooks"),
+  canvasQuestionTitle: $("#canvasQuestionTitle"),
+  canvasQuestionMeta: $("#canvasQuestionMeta"),
+  canvasWordValue: $("#canvasWordValue"),
+  canvasFitValue: $("#canvasFitValue"),
+  canvasRiskValue: $("#canvasRiskValue"),
   voiceBtn: $("#voiceBtn"),
   cleanPromptBtn: $("#cleanPromptBtn"),
   generateBtn: $("#generateBtn"),
@@ -245,7 +254,17 @@ function selectQuestion(id) {
   state.selectedId = id;
   const question = selectedQuestion();
   els.sheetQuestionLabel.textContent = question.paper;
-  els.promptInput.placeholder = `选题：${question.title}\n${question.safeAngles.join("；")}`;
+  els.promptInput.placeholder = `例如：围绕「${question.title}」先搭结构，语言像认真高中生，材料具体一点。`;
+  if (els.studioQuestionTitle) els.studioQuestionTitle.textContent = question.title;
+  if (els.studioQuestionMeta) els.studioQuestionMeta.textContent = `${question.paper} · ${question.genre}`;
+  if (els.studioQuestionSummary) els.studioQuestionSummary.textContent = question.summary;
+  if (els.studioHooks) {
+    els.studioHooks.innerHTML = question.hooks.map((hook) => `<span>${escapeHtml(hook)}</span>`).join("");
+  }
+  if (els.canvasQuestionTitle) els.canvasQuestionTitle.textContent = question.title;
+  if (els.canvasQuestionMeta) {
+    els.canvasQuestionMeta.textContent = `${question.paper} · ${question.genre} · 不少于 ${question.wordMin} 字 · 原题 ${question.sourceMax} 分`;
+  }
   renderQuestions();
   updateMetrics();
 }
@@ -1037,6 +1056,9 @@ function updateMetrics() {
   els.fitBar.style.width = `${fit}%`;
   els.riskValue.textContent = risk.label;
   els.riskBar.style.width = `${risk.value}%`;
+  if (els.canvasWordValue) els.canvasWordValue.textContent = `${len} / ${question.wordMin}`;
+  if (els.canvasFitValue) els.canvasFitValue.textContent = fit || "--";
+  if (els.canvasRiskValue) els.canvasRiskValue.textContent = risk.label;
 
   if (!state.lastResult) {
     els.scoreStamp.textContent = len ? "待阅卷" : "未交卷";

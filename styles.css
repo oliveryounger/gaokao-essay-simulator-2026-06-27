@@ -470,9 +470,12 @@ textarea {
 
 .writer-panel {
   display: grid;
-  grid-template-columns: minmax(300px, .82fr) minmax(0, 1.18fr);
+  grid-template-columns: minmax(316px, .78fr) minmax(0, 1.22fr);
   gap: 14px;
-  padding: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .conversation-panel,
@@ -480,6 +483,88 @@ textarea {
 .essay-tools,
 .coach-panel {
   min-width: 0;
+}
+
+.conversation-panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.studio-card,
+.canvas-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 10px 24px rgba(19, 33, 56, .08);
+}
+
+.studio-card {
+  padding: 11px;
+}
+
+.panel-title-row,
+.canvas-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: start;
+}
+
+.panel-title-row h3,
+.canvas-top h3 {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 1.18;
+}
+
+.panel-title-row.compact-row {
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.panel-title-row button {
+  min-width: 62px;
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.mini-pill {
+  flex: 0 0 auto;
+  max-width: 128px;
+  padding: 6px 8px;
+  border: 1px solid rgba(21, 90, 199, .22);
+  border-radius: 999px;
+  background: var(--blue-soft);
+  color: #174f9f;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.topic-summary {
+  margin: 9px 0 0;
+  color: #3f4b5f;
+  font-size: 13px;
+  line-height: 1.52;
+}
+
+.anchor-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.anchor-tags span {
+  padding: 5px 7px;
+  border: 1px solid #e0e6ef;
+  border-radius: 999px;
+  background: #fff;
+  color: #4a566a;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .conversation-panel label,
@@ -499,15 +584,19 @@ textarea {
 }
 
 #promptInput {
-  min-height: 126px;
+  min-height: 132px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.62;
 }
 
 #essayInput {
-  min-height: 600px;
+  flex: 1 1 auto;
+  min-height: 590px;
   background:
-    linear-gradient(#fff 97%, rgba(21, 90, 199, .11) 100%);
-  background-size: 100% 31px;
-  font-size: 15px;
+    linear-gradient(#fffdf8 97%, rgba(21, 90, 199, .11) 100%);
+  background-size: 100% 32px;
+  font-size: 16px;
 }
 
 .chip-row {
@@ -554,6 +643,7 @@ textarea {
 
 .composer-actions .primary-btn {
   grid-column: 1 / -1;
+  order: -1;
 }
 
 .primary-btn,
@@ -619,41 +709,12 @@ textarea {
   padding: 0 12px;
 }
 
-.conversation-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 690px;
-  padding-right: 2px;
-}
-
-.conversation-head,
-.coach-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.conversation-head h3,
-.coach-head h3 {
-  margin: 2px 0 0;
-  font-size: 20px;
-}
-
-.conversation-head button,
-.coach-head button {
-  min-width: 78px;
-  padding: 0 11px;
-}
-
 .coach-feed {
   display: grid;
   gap: 8px;
-  min-height: 250px;
-  max-height: 380px;
+  min-height: 170px;
+  max-height: 250px;
   overflow: auto;
-  margin-bottom: 10px;
   padding: 8px;
   border: 1px solid #dbe3ee;
   border-radius: 8px;
@@ -661,7 +722,7 @@ textarea {
 }
 
 .coach-msg {
-  width: min(92%, 720px);
+  width: min(94%, 720px);
   padding: 9px 10px;
   border-radius: 8px;
   color: #243044;
@@ -693,27 +754,89 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 10px;
 }
 
 .coach-actions button {
-  min-height: 36px;
-  padding: 0 8px;
+  min-height: 52px;
+  padding: 8px;
   border-color: rgba(101, 84, 192, .22);
-  background: #f0edff;
-  color: #4b3aa0;
+  background: #fbfaff;
+  color: #2f285d;
   font-size: 12px;
+  text-align: left;
 }
 
-#coachInput {
-  padding: 10px 11px;
+.coach-actions button span,
+.coach-actions button small {
+  display: block;
 }
 
-.coach-send-row {
+.coach-actions button span {
+  font-weight: 950;
+}
+
+.coach-actions button small {
+  margin-top: 2px;
+  color: #6a608f;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.quick-panel .chip-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  margin-top: 9px;
+  grid-template-columns: 1fr;
+  margin: 9px 0 0;
+}
+
+.quick-panel .chip-row button {
+  width: 100%;
+  min-height: 36px;
+  text-align: left;
+  line-height: 1.25;
+}
+
+.canvas-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+
+.canvas-top {
+  align-items: center;
+  margin-bottom: 9px;
+}
+
+.canvas-top p:last-child {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.canvas-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.canvas-metrics span {
+  min-height: 42px;
+  padding: 8px 9px;
+  border: 1px solid #e0e6ef;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.canvas-metrics b {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink);
+  font-size: 15px;
 }
 
 .judge-panel {
@@ -974,6 +1097,16 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .writer-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .alias-field {
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
+  }
+
   .question-card {
     min-height: 0;
   }
@@ -998,7 +1131,27 @@ textarea {
   }
 
   .conversation-panel {
-    min-height: 0;
+    display: contents;
+  }
+
+  .topic-brief {
+    order: 1;
+  }
+
+  .prompt-card {
+    order: 2;
+  }
+
+  .canvas-panel {
+    order: 3;
+  }
+
+  .quick-panel {
+    order: 4;
+  }
+
+  .conversation-log {
+    order: 5;
   }
 
   .coach-actions {
@@ -1006,7 +1159,17 @@ textarea {
   }
 
   #essayInput {
-    min-height: 430px;
+    min-height: 460px;
+  }
+
+  .canvas-top {
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .canvas-top .mode-tabs {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .viral-panel {
@@ -1061,8 +1224,8 @@ textarea {
   }
 
   .alias-field {
-    grid-template-columns: 1fr;
-    width: 142px;
+    grid-template-columns: auto minmax(0, 1fr);
+    width: 100%;
   }
 
   .writer-panel,
@@ -1070,6 +1233,29 @@ textarea {
   .leaderboard-panel,
   .viral-panel {
     padding: 10px;
+  }
+
+  .writer-panel {
+    padding: 0;
+  }
+
+  .studio-card,
+  .canvas-panel {
+    padding: 10px;
+  }
+
+  .canvas-top {
+    align-items: start;
+    flex-wrap: wrap;
+  }
+
+  .canvas-top .mode-tabs {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .canvas-metrics {
+    grid-template-columns: 1fr;
   }
 
   .essay-foot {
@@ -1082,7 +1268,4 @@ textarea {
     width: 100%;
   }
 
-  .coach-send-row {
-    grid-template-columns: 1fr;
-  }
 }
