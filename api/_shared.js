@@ -1,6 +1,7 @@
-const API_KEY = process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
-const BASE_URL = (process.env.OPENAI_BASE_URL || "https://api.openai.com/v1").replace(/\/$/, "");
-const MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+const API_KEY = process.env.NEOROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
+const DEFAULT_BASE_URL = process.env.NEOROUTER_API_KEY ? "https://api.neorouter.ai/v1" : "https://api.openai.com/v1";
+const BASE_URL = (process.env.NEOROUTER_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL).replace(/\/$/, "");
+const MODEL = process.env.NEOROUTER_MODEL || process.env.OPENAI_MODEL || "gpt-5.5";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",

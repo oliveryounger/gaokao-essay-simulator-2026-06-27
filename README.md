@@ -32,8 +32,11 @@ http://localhost:4177
 
 Optional environment variables:
 
-- `OPENAI_MODEL`: defaults to `gpt-5.4-mini`.
+- `OPENAI_MODEL`: defaults to `gpt-5.5`.
 - `OPENAI_BASE_URL`: defaults to `https://api.openai.com/v1`.
+- `NEOROUTER_API_KEY`: preferred when using NeoRouter.
+- `NEOROUTER_BASE_URL`: defaults to `https://api.neorouter.ai/v1` when `NEOROUTER_API_KEY` is set.
+- `NEOROUTER_MODEL`: overrides the default model for NeoRouter.
 - `PORT`: defaults to `4177`.
 
 Do not commit API keys. This project lives in an internal-public workspace, so `server.js` only reads keys from environment variables.
@@ -55,6 +58,14 @@ Vercel mode:
 ```bash
 vercel
 vercel env add OPENAI_API_KEY production
+vercel --prod
+```
+
+NeoRouter mode:
+
+```bash
+vercel env add NEOROUTER_API_KEY production
+vercel env add NEOROUTER_MODEL production
 vercel --prod
 ```
 
