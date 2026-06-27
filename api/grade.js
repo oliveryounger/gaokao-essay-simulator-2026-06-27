@@ -27,7 +27,7 @@ module.exports = async function handler(req, res) {
       input,
       schema: gradeSchema,
       schemaName: "gaokao_essay_grade",
-      maxOutputTokens: 1800
+      maxOutputTokens: 1200
     });
     sendJson(res, 200, result);
   } catch (error) {

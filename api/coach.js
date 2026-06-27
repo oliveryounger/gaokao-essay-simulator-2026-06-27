@@ -32,7 +32,7 @@ module.exports = async function handler(req, res) {
       input,
       schema: coachSchema,
       schemaName: "gaokao_essay_coach",
-      maxOutputTokens: 3600
+      maxOutputTokens: 2600
     });
     sendJson(res, 200, result);
   } catch (error) {
