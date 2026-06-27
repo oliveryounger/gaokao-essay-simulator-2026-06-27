@@ -36,6 +36,7 @@ Optional environment variables:
 - `OPENAI_BASE_URL`: defaults to `https://api.openai.com/v1`.
 - `NEOROUTER_API_KEY`: preferred when using NeoRouter.
 - `NEOROUTER_BASE_URL`: defaults to `https://api.neorouter.ai/v1` when `NEOROUTER_API_KEY` is set.
+  - `https://api.neorouter.ai` is accepted and normalized to `/v1`.
 - `NEOROUTER_MODEL`: overrides the default model for NeoRouter.
 - `PORT`: defaults to `4177`.
 
@@ -68,6 +69,8 @@ vercel env add NEOROUTER_API_KEY production
 vercel env add NEOROUTER_MODEL production
 vercel --prod
 ```
+
+Do not put `NEOROUTER_API_KEY` in `config.js` or `app.js`. GitHub Pages is public static hosting, and NeoRouter responses do not expose browser CORS headers for direct public-page calls; use the serverless proxy.
 
 If the whole repo is served from Vercel, the frontend can call same-origin `/api/*` and `config.js` can stay empty.
 
