@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>高考语文模拟器</title>
+  <meta name="description" content="选择 2026 高考语文作文题，用 AI 写一篇作文，再接受严格考官评分，生成同题挑战战报。">
+  <meta name="theme-color" content="#f4f6f8">
+  <meta property="og:title" content="高考语文模拟器">
+  <meta property="og:description" content="同题作文挑战：AI 帮你写，考官严格扣分，看看你能不能上榜。">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <p class="kicker">2026 essay challenge</p>
+        <h1>高考语文模拟器</h1>
+        <p>选今年高考作文题，写 prompt，请 AI 帮你成文，然后让严苛阅卷老师打分。</p>
+      </div>
+      <div class="status-pill" id="aiStatus">AI 服务检测中</div>
+    </header>
+
+    <section class="exam-visual" aria-label="考场视觉">
+      <div class="answer-sheet">
+        <div class="sheet-head">
+          <span>语文</span>
+          <b>作文答题纸</b>
+          <i id="sheetQuestionLabel">待选题</i>
+        </div>
+        <div class="sheet-lines" aria-hidden="true"></div>
+        <div class="red-stamp" id="scoreStamp">未交卷</div>
+      </div>
+      <div class="exam-desk" aria-hidden="true">
+        <span class="pen"></span>
+        <span class="timer-face"><b id="deskScore">--</b><i>分</i></span>
+      </div>
+    </section>
+
+    <section class="hud-grid" aria-live="polite">
+      <div class="hud-item">
+        <span>当前分数</span>
+        <strong id="scoreValue">--</strong>
+      </div>
+      <div class="hud-meter">
+        <div><span>字数进度</span><strong id="wordValue">0 / 800</strong></div>
+        <i><b id="wordBar"></b></i>
+      </div>
+      <div class="hud-meter">
+        <div><span>审题贴合</span><strong id="fitValue">0</strong></div>
+        <i><b id="fitBar"></b></i>
+      </div>
+      <div class="hud-meter risk">
+        <div><span>跑题风险</span><strong id="riskValue">--</strong></div>
+        <i><b id="riskBar"></b></i>
+      </div>
+    </section>
+
+    <section class="section-head">
+      <div>
+        <p class="kicker">step 1</p>
+        <h2>选择今年的作文题</h2>
+      </div>
+      <button id="randomQuestionBtn" type="button">随机命题</button>
+    </section>
+
+    <section id="questionGrid" class="question-grid" aria-label="作文题列表"></section>
+
+    <section class="section-head writer-head">
+      <div>
+        <p class="kicker">step 2</p>
+        <h2>写 prompt，让 AI 代笔</h2>
+      </div>
+      <label class="alias-field" for="aliasInput">
+        <span>考生代号</span>
+        <input id="aliasInput" type="text" maxlength="12" value="作文勇士" autocomplete="off">
+      </label>
+    </section>
+
+    <section class="writer-panel">
+      <div class="prompt-tools">
+        <label for="promptInput">你的 prompt</label>
+        <textarea id="promptInput" rows="5" placeholder="例如：写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI，结尾有力量。"></textarea>
+        <div id="promptChips" class="chip-row" aria-label="快捷 prompt"></div>
+        <div class="writer-actions">
+          <button id="voiceBtn" type="button">语音输入</button>
+          <button id="cleanPromptBtn" type="button">清空</button>
+          <button id="generateBtn" class="primary-btn" type="button">AI 帮我写</button>
+        </div>
+        <p id="voiceHint" class="tool-hint">移动端 Chrome 支持语音识别；不支持时可直接打字。</p>
+      </div>
+
+      <div class="essay-tools">
+        <div class="essay-title-row">
+          <label for="essayInput">作文正文</label>
+          <div class="mode-tabs" role="tablist" aria-label="写作模式">
+            <button class="mode-tab active" data-mode="stable" type="button">稳</button>
+            <button class="mode-tab" data-mode="sharp" type="button">锐</button>
+            <button class="mode-tab" data-mode="literary" type="button">文</button>
+          </div>
+        </div>
+        <textarea id="essayInput" rows="15" placeholder="AI 生成后会出现在这里，也可以自己修改。"></textarea>
+        <div class="essay-foot">
+          <span id="essayStatus">等待写作</span>
+          <button id="gradeBtn" class="submit-btn" type="button">交卷阅卷</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-head">
+      <div>
+        <p class="kicker">step 3</p>
+        <h2>考官评分</h2>
+      </div>
+      <button id="copyShareBtn" type="button" disabled>复制挑战</button>
+    </section>
+
+    <section class="judge-panel">
+      <div class="score-card">
+        <p class="kicker">严格阅卷</p>
+        <h3 id="resultTitle">还没有交卷</h3>
+        <div class="score-big"><strong id="totalScore">--</strong><span>/ 60</span></div>
+        <p id="judgeComment">写完作文后，考官会按高考作文 60 分制给出分项分、扣分理由和改进方向。</p>
+      </div>
+      <div class="rubric-grid">
+        <div class="rubric-row">
+          <span>内容</span>
+          <i><b id="contentBar"></b></i>
+          <strong id="contentScore">--</strong>
+        </div>
+        <div class="rubric-row">
+          <span>表达</span>
+          <i><b id="expressionBar"></b></i>
+          <strong id="expressionScore">--</strong>
+        </div>
+        <div class="rubric-row">
+          <span>发展</span>
+          <i><b id="developmentBar"></b></i>
+          <strong id="developmentScore">--</strong>
+        </div>
+        <div id="redFlags" class="red-flags"></div>
+      </div>
+    </section>
+
+    <section class="leaderboard-panel">
+      <div class="section-head compact">
+        <div>
+          <p class="kicker">step 4</p>
+          <h2>同题排行榜</h2>
+        </div>
+        <button id="resetBoardBtn" type="button">清本机榜</button>
+      </div>
+      <ol id="leaderboardList" class="leaderboard-list"></ol>
+    </section>
+
+    <section class="viral-panel">
+      <div>
+        <p class="kicker">share loop</p>
+        <h2 id="shareTitle">先交一篇，生成你的作文战报。</h2>
+        <p id="shareText">排行榜保存在本机浏览器。战报文案会带上题目、分数、考官评语和同题挑战口令。</p>
+      </div>
+      <div class="share-actions">
+        <button id="posterBtn" type="button" disabled>生成海报</button>
+        <button id="downloadBtn" type="button" disabled>下载海报</button>
+        <button id="systemShareBtn" type="button" disabled>系统分享</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="posterDialog" class="poster-dialog">
+    <form method="dialog" class="poster-shell">
+      <div class="poster-head">
+        <div>
+          <p class="kicker">作文战报</p>
+          <h2>发给朋友同题挑战</h2>
+        </div>
+        <button value="close" type="submit" aria-label="关闭">关</button>
+      </div>
+      <canvas id="posterCanvas" width="900" height="1350" aria-label="可分享作文战报图"></canvas>
+      <div class="poster-actions">
+        <button id="dialogCopyBtn" type="button">复制文案</button>
+        <button id="dialogDownloadBtn" type="button">下载图片</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
