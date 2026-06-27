@@ -79,21 +79,41 @@
     </section>
 
     <section class="writer-panel">
-      <div class="prompt-tools">
-        <label for="promptInput">创作目标</label>
-        <textarea id="promptInput" rows="5" placeholder="例如：我想写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI。先帮我搭结构，再写初稿，结尾要有力量。"></textarea>
+      <aside class="conversation-panel">
+        <div class="conversation-head">
+          <div>
+            <p class="kicker">chat</p>
+            <h3>对话</h3>
+          </div>
+          <button id="clearCoachBtn" type="button">清空</button>
+        </div>
+        <div id="coachFeed" class="coach-feed" aria-live="polite"></div>
         <div id="promptChips" class="chip-row" aria-label="快捷 prompt"></div>
-        <div class="writer-actions">
-          <button id="voiceBtn" type="button">语音输入</button>
+        <div id="coachActions" class="coach-actions" aria-label="快捷改稿">
+          <button type="button" data-action="diagnose">诊断</button>
+          <button type="button" data-action="outline">提纲</button>
+          <button type="button" data-action="revise">整篇改</button>
+          <button type="button" data-action="opening">换开头</button>
+          <button type="button" data-action="detail">补细节</button>
+          <button type="button" data-action="humanize">去 AI 味</button>
+          <button type="button" data-action="ending">升结尾</button>
+          <button type="button" data-action="polish">润色</button>
+        </div>
+        <label for="promptInput">给 AI 的下一句话</label>
+        <textarea id="promptInput" rows="4" placeholder="例如：我想写一篇稳健议论文，立意不要跑题，语言有高中生质感，避免太 AI。先帮我搭结构，再写初稿，结尾要有力量。"></textarea>
+        <div class="composer-actions">
+          <button id="voiceBtn" type="button">语音</button>
           <button id="cleanPromptBtn" type="button">清空</button>
+          <button id="coachAdviceBtn" type="button">只要建议</button>
+          <button id="coachSendBtn" type="button">应用到 Canvas</button>
           <button id="generateBtn" class="primary-btn" type="button">生成初稿</button>
         </div>
-        <p id="voiceHint" class="tool-hint">移动端 Chrome 支持语音识别；不支持时可直接打字。生成后继续用下面的 AI 教练反复改。</p>
-      </div>
+        <p id="voiceHint" class="tool-hint">左侧可以像聊天一样反复追加要求；需要落到正文时点“应用到 Canvas”。移动端 Chrome 支持语音输入。</p>
+      </aside>
 
-      <div class="essay-tools">
+      <div class="essay-tools canvas-panel">
         <div class="essay-title-row">
-          <label for="essayInput">作文正文</label>
+          <label for="essayInput">作文 Canvas</label>
           <div class="mode-tabs" role="tablist" aria-label="写作模式">
             <button class="mode-tab active" data-mode="stable" type="button">稳</button>
             <button class="mode-tab" data-mode="sharp" type="button">锐</button>
@@ -105,33 +125,6 @@
           <span id="essayStatus">等待写作</span>
           <button id="undoDraftBtn" type="button" disabled>撤回上版</button>
           <button id="gradeBtn" class="submit-btn" type="button">交卷阅卷</button>
-        </div>
-      </div>
-
-      <div class="coach-panel">
-        <div class="coach-head">
-          <div>
-            <p class="kicker">AI writing desk</p>
-            <h3>AI 教练</h3>
-          </div>
-          <button id="clearCoachBtn" type="button">清对话</button>
-        </div>
-        <div id="coachFeed" class="coach-feed" aria-live="polite"></div>
-        <div id="coachActions" class="coach-actions" aria-label="快捷改稿">
-          <button type="button" data-action="diagnose">先诊断</button>
-          <button type="button" data-action="outline">重搭提纲</button>
-          <button type="button" data-action="revise">整篇改稿</button>
-          <button type="button" data-action="opening">换开头</button>
-          <button type="button" data-action="detail">补细节</button>
-          <button type="button" data-action="humanize">去 AI 味</button>
-          <button type="button" data-action="ending">升结尾</button>
-          <button type="button" data-action="polish">润色语言</button>
-        </div>
-        <label for="coachInput">继续要求 AI</label>
-        <textarea id="coachInput" rows="3" placeholder="例如：第二段太空了，帮我换成一个真实一点的校园经历；不要改全文，只改这一段。"></textarea>
-        <div class="coach-send-row">
-          <button id="coachAdviceBtn" type="button">只给建议</button>
-          <button id="coachSendBtn" class="primary-btn" type="button">按要求改稿</button>
         </div>
       </div>
     </section>

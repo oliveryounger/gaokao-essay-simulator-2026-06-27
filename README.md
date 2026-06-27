@@ -8,7 +8,7 @@ source: User request; public 2026 Gaokao Chinese essay prompt reporting; OpenAI 
 
 # 高考语文模拟器
 
-移动端网页小游戏：玩家选择 2026 高考语文作文题，输入创作目标或语音输入，和 AI 教练多轮打磨作文，再由严格考官按统一 60 分制评分，生成本机排行榜和可分享战报图。
+移动端网页小游戏：玩家选择 2026 高考语文作文题，在左侧持续对话，右侧作文 Canvas 流式生成和改稿，再由严格考官按统一 60 分制评分，生成本机排行榜和可分享战报图。
 
 ## Run
 
@@ -32,12 +32,12 @@ http://localhost:4177
 
 Optional environment variables:
 
-- `OPENAI_MODEL`: defaults to `gpt-5.5`.
+- `OPENAI_MODEL`: overrides the default model when using an OpenAI-compatible non-NeoRouter backend.
 - `OPENAI_BASE_URL`: defaults to `https://api.openai.com/v1`.
 - `NEOROUTER_API_KEY`: preferred when using NeoRouter.
 - `NEOROUTER_BASE_URL`: defaults to `https://api.neorouter.ai/v1` when `NEOROUTER_API_KEY` is set.
   - `https://api.neorouter.ai` is accepted and normalized to `/v1`.
-- `NEOROUTER_MODEL`: overrides the default model for NeoRouter.
+- `NEOROUTER_MODEL`: defaults to `deepseek/deepseek-v4-flash` for NeoRouter. The backend tries V4 Flash aliases first, then falls back to `gpt-5.5` if the current NeoRouter account has not exposed DeepSeek in `/v1/models`.
 - `PORT`: defaults to `4177`.
 
 Do not commit API keys. This project lives in an internal-public workspace, so `server.js` only reads keys from environment variables.
@@ -78,10 +78,11 @@ If the whole repo is served from Vercel, the frontend can call same-origin `/api
 
 - Choose one of six 2026 main作文题: 全国 I、全国 II、北京议论文、北京记叙文、天津、上海.
 - Use prompt chips or browser speech recognition to describe the desired style.
-- Generate an initial draft, then repeatedly ask the AI coach to diagnose, rebuild outline, revise, rewrite opening, add detail, remove AI tone, improve ending, or polish language.
+- Generate an initial draft, then keep chatting to diagnose, rebuild outline, revise, rewrite opening, add detail, remove AI tone, improve ending, or polish language.
 - Draft history supports undoing the last AI rewrite.
-- AI writing endpoint returns title, essay, outline, and risk warnings.
-- AI coach endpoint returns a player-facing reply, optional rewritten essay, patch summary, and remaining warnings.
+- Streaming writing endpoints update the Canvas or chat message as text arrives.
+- JSON fallback writing endpoints return title, essay, outline, and risk warnings.
+- JSON fallback rewrite endpoints return a player-facing reply, optional rewritten essay, patch summary, and remaining warnings.
 - Grading endpoint returns:
   - content / expression / development, each 20 points
   - total score out of 60

@@ -9,13 +9,23 @@ const PORT = Number(process.env.PORT || 4177);
 const API_KEY = process.env.NEOROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.LLM_API_KEY || "";
 const DEFAULT_BASE_URL = process.env.NEOROUTER_API_KEY ? "https://api.neorouter.ai/v1" : "https://api.openai.com/v1";
 const BASE_URL = normalizeBaseUrl(process.env.NEOROUTER_BASE_URL || process.env.OPENAI_BASE_URL || DEFAULT_BASE_URL);
-const MODEL = process.env.NEOROUTER_MODEL || process.env.OPENAI_MODEL || "gpt-5.5";
+const DEFAULT_MODEL = process.env.NEOROUTER_API_KEY ? "deepseek/deepseek-v4-flash" : "gpt-5.5";
+const MODEL = process.env.NEOROUTER_MODEL || process.env.OPENAI_MODEL || DEFAULT_MODEL;
 const MAX_BODY_BYTES = 180_000;
+
+const apiHandlers = {
+  "/api/health": require("./api/health"),
+  "/api/write": require("./api/write"),
+  "/api/write-stream": require("./api/write-stream"),
+  "/api/coach": require("./api/coach"),
+  "/api/coach-stream": require("./api/coach-stream"),
+  "/api/grade": require("./api/grade")
+};
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN || "*",
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization"
+  "Access-Control-Allow-Headers": "Content-Type,Authorization,Accept"
 };
 
 const mimeTypes = {
@@ -94,6 +104,41 @@ function sendText(res, status, text) {
     ...CORS_HEADERS
   });
   res.end(text);
+}
+
+function createApiResponse(res) {
+  return {
+    statusCode: 200,
+    socket: res.socket,
+    setHeader(key, value) {
+      res.setHeader(key, value);
+    },
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(data) {
+      if (!res.headersSent) {
+        res.statusCode = this.statusCode;
+        if (!res.hasHeader("Content-Type")) res.setHeader("Content-Type", "application/json; charset=utf-8");
+      }
+      res.end(JSON.stringify(data));
+    },
+    write(chunk) {
+      if (!res.headersSent) res.statusCode = this.statusCode;
+      return res.write(chunk);
+    },
+    end(chunk) {
+      if (!res.headersSent) res.statusCode = this.statusCode;
+      res.end(chunk);
+    },
+    flushHeaders() {
+      if (!res.headersSent) {
+        res.statusCode = this.statusCode;
+        res.flushHeaders();
+      }
+    }
+  };
 }
 
 function safePath(urlPath) {
@@ -364,6 +409,13 @@ async function handleCoach(req, res) {
 
 async function route(req, res) {
   try {
+    const pathname = req.url.split("?")[0];
+    const apiHandler = apiHandlers[pathname];
+    if (apiHandler) {
+      await apiHandler(req, createApiResponse(res));
+      return;
+    }
+
     if (req.method === "OPTIONS") {
       sendText(res, 204, "");
       return;

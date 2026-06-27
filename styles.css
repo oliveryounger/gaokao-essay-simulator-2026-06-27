@@ -470,17 +470,19 @@ textarea {
 
 .writer-panel {
   display: grid;
-  grid-template-columns: minmax(280px, .78fr) minmax(0, 1.22fr);
+  grid-template-columns: minmax(300px, .82fr) minmax(0, 1.18fr);
   gap: 14px;
   padding: 12px;
 }
 
+.conversation-panel,
 .prompt-tools,
 .essay-tools,
 .coach-panel {
   min-width: 0;
 }
 
+.conversation-panel label,
 .prompt-tools label,
 .essay-title-row label,
 .coach-panel label {
@@ -496,8 +498,12 @@ textarea {
   padding: 11px 12px;
 }
 
+#promptInput {
+  min-height: 126px;
+}
+
 #essayInput {
-  min-height: 470px;
+  min-height: 600px;
   background:
     linear-gradient(#fff 97%, rgba(21, 90, 199, .11) 100%);
   background-size: 100% 31px;
@@ -521,6 +527,7 @@ textarea {
 }
 
 .writer-actions,
+.composer-actions,
 .essay-foot,
 .share-actions,
 .poster-actions {
@@ -532,10 +539,21 @@ textarea {
 }
 
 .writer-actions button,
+.composer-actions button,
 .share-actions button,
 .poster-actions button {
   min-width: 96px;
   padding: 0 14px;
+}
+
+.composer-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 9px;
+}
+
+.composer-actions .primary-btn {
+  grid-column: 1 / -1;
 }
 
 .primary-btn,
@@ -601,16 +619,14 @@ textarea {
   padding: 0 12px;
 }
 
-.coach-panel {
-  grid-column: 1 / -1;
-  padding: 12px;
-  border: 1px solid #dbe3ee;
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(232, 240, 255, .65), transparent 36%),
-    #fff;
+.conversation-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 690px;
+  padding-right: 2px;
 }
 
+.conversation-head,
 .coach-head {
   display: flex;
   justify-content: space-between;
@@ -619,11 +635,13 @@ textarea {
   margin-bottom: 10px;
 }
 
+.conversation-head h3,
 .coach-head h3 {
   margin: 2px 0 0;
   font-size: 20px;
 }
 
+.conversation-head button,
 .coach-head button {
   min-width: 78px;
   padding: 0 11px;
@@ -632,7 +650,8 @@ textarea {
 .coach-feed {
   display: grid;
   gap: 8px;
-  max-height: 260px;
+  min-height: 250px;
+  max-height: 380px;
   overflow: auto;
   margin-bottom: 10px;
   padding: 8px;
@@ -672,7 +691,7 @@ textarea {
 
 .coach-actions {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -960,19 +979,26 @@ textarea {
   }
 
   .writer-actions,
+  .composer-actions,
   .share-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
   }
 
   .writer-actions .primary-btn,
+  .composer-actions .primary-btn,
   .share-actions button:last-child {
     grid-column: 1 / -1;
   }
 
   .writer-actions button,
+  .composer-actions button,
   .share-actions button {
     width: 100%;
+  }
+
+  .conversation-panel {
+    min-height: 0;
   }
 
   .coach-actions {

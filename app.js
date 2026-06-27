@@ -138,7 +138,7 @@ const els = {
   gradeBtn: $("#gradeBtn"),
   coachFeed: $("#coachFeed"),
   coachActions: $("#coachActions"),
-  coachInput: $("#coachInput"),
+  coachInput: $("#coachInput") || $("#promptInput"),
   coachAdviceBtn: $("#coachAdviceBtn"),
   coachSendBtn: $("#coachSendBtn"),
   clearCoachBtn: $("#clearCoachBtn"),
@@ -321,11 +321,67 @@ async function postJson(url, payload) {
   return res.json();
 }
 
+async function postStream(url, payload, onDelta) {
+  const res = await fetch(apiUrl(url), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "text/event-stream"
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok || !res.body) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() || "";
+    for (const block of blocks) handleSseBlock(block, onDelta);
+  }
+  if (buffer.trim()) handleSseBlock(buffer, onDelta);
+}
+
+function handleSseBlock(block, onDelta) {
+  const lines = String(block || "").split(/\r?\n/);
+  const eventLine = lines.find((line) => line.startsWith("event:"));
+  const eventName = eventLine ? eventLine.slice(6).trim() : "message";
+  const dataText = lines
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trimStart())
+    .join("\n");
+  if (!dataText || eventName === "done") return;
+  let data = dataText;
+  try {
+    data = JSON.parse(dataText);
+  } catch {
+    // Plain text fallback from non-SSE compatible proxies.
+  }
+  if (eventName === "error") {
+    throw new Error(typeof data === "object" ? data.message || "AI stream failed" : String(data));
+  }
+  if (eventName === "delta" || eventName === "message") onDelta(String(data || ""));
+}
+
 async function generateEssay() {
   const question = selectedQuestion();
   const userPrompt = els.promptInput.value.trim();
   setBusy(true, "AI 正在组织论点和考场结构");
   addCoachMessage("user", userPrompt || `请根据「${question.title}」生成一版稳妥初稿。`);
+  const payload = {
+    question: buildQuestionPayload(),
+    userPrompt,
+    mode: state.mode,
+    alias: alias()
+  };
 
   if (state.aiMode !== "online") {
     const fallback = localEssay(question, userPrompt, state.mode);
@@ -338,12 +394,26 @@ async function generateEssay() {
   }
 
   try {
-    const data = await postJson("api/write", {
-      question: buildQuestionPayload(),
-      userPrompt,
-      mode: state.mode,
-      alias: alias()
-    });
+    let streamed = "";
+    const streamMessage = addCoachMessage("ai", "正在流式生成初稿，右侧 Canvas 会同步写入。");
+    beginLiveEssay("AI 正在流式写入 Canvas");
+    try {
+      await postStream("api/write-stream", payload, (delta) => {
+        streamed += delta;
+        updateLiveEssay(streamed, `AI 正在流式写入 ${chineseLength(streamed)} 字`);
+        updateCoachMessage(streamMessage, `正在流式生成初稿，右侧 Canvas 同步写入。\n已写入 ${chineseLength(streamed)} 字`);
+      });
+      if (chineseLength(streamed) > 120) {
+        finishLiveEssay(streamed, "AI 流式初稿完成，可继续追问或改稿");
+        updateCoachMessage(streamMessage, "初稿已写入 Canvas。你可以继续输入要求，让 AI 诊断、补细节、去 AI 味或局部改写。");
+        return;
+      }
+      throw new Error("stream returned too little text");
+    } catch {
+      updateCoachMessage(streamMessage, "流式生成暂时不可用，已改用普通生成。");
+    }
+
+    const data = await postJson("api/write", payload);
     const normalized = normalizeWriteResult(data, question, userPrompt);
     replaceEssay(`${normalized.title}\n\n${normalized.essay}`, "AI 初稿完成，可继续追问或改稿");
     addCoachMessage("ai", [
@@ -405,6 +475,34 @@ function replaceEssay(nextEssay, status) {
   drawPoster();
 }
 
+function beginLiveEssay(status) {
+  if (currentEssay()) pushDraftSnapshot();
+  els.essayInput.value = "";
+  state.lastResult = null;
+  toggleShareButtons(false);
+  els.undoDraftBtn.disabled = state.draftHistory.length === 0;
+  if (status) els.essayStatus.textContent = status;
+  updateMetrics();
+}
+
+function updateLiveEssay(text, status) {
+  els.essayInput.value = text;
+  state.lastResult = null;
+  toggleShareButtons(false);
+  if (status) els.essayStatus.textContent = status;
+  updateMetrics();
+}
+
+function finishLiveEssay(text, status) {
+  els.essayInput.value = String(text || "").trim();
+  state.lastResult = null;
+  toggleShareButtons(false);
+  els.undoDraftBtn.disabled = state.draftHistory.length === 0;
+  if (status) els.essayStatus.textContent = status;
+  updateMetrics();
+  drawPoster();
+}
+
 function undoDraft() {
   const previous = state.draftHistory.pop();
   if (!previous) return;
@@ -418,9 +516,16 @@ function undoDraft() {
 
 function addCoachMessage(role, text) {
   const clean = String(text || "").trim();
-  if (!clean) return;
+  if (!clean) return -1;
   state.coachMessages.push({ role, text: clean });
   state.coachMessages = state.coachMessages.slice(-20);
+  renderCoachFeed();
+  return state.coachMessages.length - 1;
+}
+
+function updateCoachMessage(index, text) {
+  if (index < 0 || !state.coachMessages[index]) return;
+  state.coachMessages[index].text = String(text || "").trim() || "…";
   renderCoachFeed();
 }
 
@@ -428,10 +533,10 @@ function renderCoachFeed() {
   if (!els.coachFeed) return;
   const messages = state.coachMessages.length
     ? state.coachMessages
-    : [{ role: "ai", text: "先写创作目标，生成初稿；之后可以让我诊断、重搭提纲、改开头、补细节、去 AI 味，直到你喜欢为止。" }];
+    : [{ role: "ai", text: "先在下面输入创作目标，生成初稿；之后继续像聊天一样要求我诊断、重搭提纲、改开头、补细节或去 AI 味，右侧 Canvas 会同步更新。" }];
   els.coachFeed.innerHTML = messages.map((message) => `
     <div class="coach-msg ${message.role === "user" ? "user" : "ai"}">
-      <strong>${message.role === "user" ? "你" : "AI 教练"}</strong>${escapeHtml(message.text)}
+      <strong>${message.role === "user" ? "你" : "AI"}</strong>${escapeHtml(message.text)}
     </div>
   `).join("");
   els.coachFeed.scrollTop = els.coachFeed.scrollHeight;
@@ -528,7 +633,7 @@ async function runCoach(action, customInstruction = "", shouldRewrite = true) {
   }
 
   addCoachMessage("user", instruction);
-  setBusy(true, shouldRewrite ? "AI 教练正在改稿" : "AI 教练正在诊断");
+  setBusy(true, shouldRewrite ? "AI 正在改写 Canvas" : "AI 正在诊断");
 
   if (state.aiMode !== "online") {
     const result = localCoach(question, essay, instruction, action, shouldRewrite);
@@ -537,22 +642,61 @@ async function runCoach(action, customInstruction = "", shouldRewrite = true) {
     return;
   }
 
+  const payload = {
+    question: buildQuestionPayload(),
+    essay,
+    userPrompt: els.promptInput.value.trim(),
+    instruction,
+    action,
+    mode: state.mode,
+    shouldRewrite,
+    history: state.coachMessages.slice(-10),
+    alias: alias()
+  };
+
   try {
-    const data = await postJson("api/coach", {
-      question: buildQuestionPayload(),
-      essay,
-      userPrompt: els.promptInput.value.trim(),
-      instruction,
-      action,
-      mode: state.mode,
-      shouldRewrite,
-      history: state.coachMessages.slice(-10),
-      alias: alias()
-    });
+    if (shouldRewrite) {
+      let streamed = "";
+      const streamMessage = addCoachMessage("ai", "正在把修改流式写入右侧 Canvas。");
+      beginLiveEssay("AI 正在流式改写 Canvas");
+      try {
+        await postStream("api/coach-stream", payload, (delta) => {
+          streamed += delta;
+          updateLiveEssay(streamed, `AI 正在流式改写 ${chineseLength(streamed)} 字`);
+          updateCoachMessage(streamMessage, `正在把修改流式写入右侧 Canvas。\n已写入 ${chineseLength(streamed)} 字`);
+        });
+        if (chineseLength(streamed) > 80) {
+          finishLiveEssay(streamed, "AI 已流式生成新版本，可继续追问");
+          updateCoachMessage(streamMessage, "新版本已经写入 Canvas。你可以继续要求局部改写、压缩、补材料或只要建议。");
+          return;
+        }
+        throw new Error("stream returned too little text");
+      } catch {
+        updateCoachMessage(streamMessage, "流式改写暂时不可用，已改用普通改稿。");
+      }
+    } else {
+      let reply = "";
+      const streamMessage = addCoachMessage("ai", "正在流式诊断。");
+      try {
+        await postStream("api/coach-stream", payload, (delta) => {
+          reply += delta;
+          updateCoachMessage(streamMessage, reply);
+        });
+        if (reply.trim()) {
+          els.essayStatus.textContent = "AI 已给出建议";
+          return;
+        }
+        throw new Error("stream returned empty advice");
+      } catch {
+        updateCoachMessage(streamMessage, "流式建议暂时不可用，已改用普通回复。");
+      }
+    }
+
+    const data = await postJson("api/coach", payload);
     applyCoachResult(normalizeCoachResult(data, question, essay, instruction, action, shouldRewrite), shouldRewrite);
   } catch (error) {
     const result = localCoach(question, essay, instruction, action, shouldRewrite);
-    result.reply = `线上 AI 暂不可用，先用本地模拟教练处理。\n\n${result.reply}`;
+    result.reply = `线上 AI 暂不可用，先用本地模拟处理。\n\n${result.reply}`;
     applyCoachResult(result, shouldRewrite);
   } finally {
     setBusy(false);
@@ -582,9 +726,9 @@ function applyCoachResult(result, shouldRewrite) {
   addCoachMessage("ai", parts.join("\n\n"));
 
   if (shouldRewrite && result.essay) {
-    replaceEssay(result.essay, "AI 教练已生成新版本，可继续追问");
+    replaceEssay(result.essay, "AI 已生成新版本，可继续追问");
   } else {
-    els.essayStatus.textContent = "AI 教练已给出建议";
+    els.essayStatus.textContent = "AI 已给出建议";
   }
 }
 
@@ -1230,7 +1374,7 @@ function bindEvents() {
   els.clearCoachBtn.addEventListener("click", () => {
     state.coachMessages = [];
     renderCoachFeed();
-    els.essayStatus.textContent = "AI 教练对话已清空";
+    els.essayStatus.textContent = "对话已清空";
   });
   els.resetBoardBtn.addEventListener("click", () => {
     localStorage.removeItem(boardKey());
