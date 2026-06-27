@@ -600,6 +600,7 @@ module.exports = {
   MODEL,
   BASE_URL,
   API_KEY,
+  modelCandidates,
   writeSchema,
   coachSchema,
   gradeSchema,

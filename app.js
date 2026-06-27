@@ -298,7 +298,8 @@ async function checkAiHealth() {
     if (!res.ok) throw new Error("health failed");
     const data = await res.json();
     state.aiMode = data.aiEnabled ? "online" : "mock";
-    els.aiStatus.textContent = data.aiEnabled ? `AI 在线 · ${data.model}` : "本地模拟 AI";
+    const fallback = Array.isArray(data.fallbackModels) && data.fallbackModels.includes("gpt-5.5") ? " → gpt-5.5" : "";
+    els.aiStatus.textContent = data.aiEnabled ? `AI 在线 · ${data.model}${fallback}` : "本地模拟 AI";
     els.aiStatus.classList.toggle("online", data.aiEnabled);
     els.aiStatus.classList.toggle("mock", !data.aiEnabled);
   } catch {
